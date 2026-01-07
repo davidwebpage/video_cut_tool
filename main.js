@@ -148,7 +148,7 @@ function openShortcutsWindow() {
       contextIsolation: false,
     },
     title: '自定义快捷键',
-    icon: path.join(__dirname, '视频剪切工具图标_256x256.ico'),
+    icon: path.join(__dirname, 'icon.ico'),
   });
 
   shortcutsWindow.loadFile(path.join(__dirname, 'keyboard-shortcuts.html'));

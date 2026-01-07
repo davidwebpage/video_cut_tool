@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "set NODE_ENV=production && set PYTHONIOENCODING=utf-8 && set LANG=en_US.UTF-8 && set LC_ALL=en_US.UTF-8 && electron .",
-    "package": "electron-builder --win --x64"
+    "package": "electron-builder"
   },
   "keywords": [
     "video",
@@ -26,15 +26,17 @@
     "appId": "com.videocutterpro.app",
     "productName": "Video Cutter Pro",
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": ["nsis", "portable"],
       "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "Video-Cutter-Pro-${version}-portable.exe"
     }
   }
 }
