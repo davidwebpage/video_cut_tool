@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频剪切工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1976d2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            background-color: #1565c0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            background-color: #1a1a1a;
+        }
+
+        .video-list-panel {
+            width: 250px;
+            padding: 16px;
+            background-color: #1e1e1e;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            position: relative;
+            transition: width 0.3s ease;
+        }
+
+        .video-list-panel:hover {
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 24px;
+            background-color: #1a1a1a;
+            overflow-y: auto;
+        }
+
+        .video-info-container {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .video-container {
+            position: relative;
+            flex: 1;
+            min-width: 400px;
+            height: 360px;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .video-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-info-panel {
+            width: 350px;
+            min-width: 300px;
+            height: 365px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .video-info-panel .info-panel {
+            flex: 1;
+            margin-bottom: 0;
+            overflow-y: auto;
+        }
+
+        video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .controls {
+            background-color: #2d2d2d;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 0;
+            height: 4px;
+            background-color: #1976d2;
+            transition: width 0.1s ease;
+            z-index: 1;
+        }
+
+        .video-list-panel {
+            width: 300px;
+            padding: 20px;
+            background-color: #1e1e1e;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            background-color: transparent;
+            cursor: col-resize;
+            z-index: 10;
+        }
+
+        .resizer:hover {
+            background-color: rgba(25, 118, 210, 0.5);
+        }
+
+        .resizer.active {
+            background-color: #1976d2;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 20px;
+            background-color: #1e1e1e;
+            overflow-y: auto;
+        }
+
+        .video-list {
+            margin-top: 10px;
+        }
+
+        .video-item {
+            background-color: #2d2d2d;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            border: 1px solid transparent;
+        }
+
+        .video-item:hover {
+            background-color: #333;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .video-item.active {
+            background-color: rgba(25, 118, 210, 0.2);
+            border: 1px solid #1976d2;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+        }
+
+        .video-item.selected {
+            background-color: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+        }
+
+        .video-item.selected.active {
+            background-color: rgba(25, 118, 210, 0.3);
+            border: 1px solid #1976d2;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+        }
+
+        .video-preview {
+            width: 50px;
+            height: 50px;
+            background-color: transparent;
+            border-radius: 6px;
+            margin-right: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .video-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            transition: transform 0.3s ease;
+        }
+
+        .video-item:hover .video-preview img {
+            transform: scale(1.05);
+        }
+
+        .video-item-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .video-item-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #fff;
+            font-size: 12px;
+        }
+
+        /* 长文件名截断，保持开头和后缀 */
+        .truncated-filename {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #fff;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filename-start {
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .filename-ellipsis {
+            margin: 0 4px;
+            color: #aaa;
+        }
+
+        .filename-end {
+            white-space: nowrap;
+        }
+
+        .video-item-meta {
+            font-size: 10px;
+            color: #aaa;
+        }
+
+        .info-panel {
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .info-panel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-panel h3 {
+            margin-bottom: 20px;
+            color: #1976d2;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        /* 时间线的风格  */
+        .timeline-track {
+            position: relative;
+            height: 50px;
+            background-color: #333;
+            border-radius: 10px;
+            margin-top: 0px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .cut-region {
+            position: absolute;
+            top: 0;
+            height: 70px;
+            background-color: rgba(25, 118, 210, 0.3);
+            cursor: move;
+            border-radius: 12px;
+            transition: background-color 0.3s ease;
+        }
+
+        .cut-region:hover {
+            background-color: rgba(25, 118, 210, 0.4);
+        }
+
+        .cut-handle {
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 70px;
+            background-color: #1976d2;
+            cursor: ew-resize;
+            transition: background-color 0.3s ease, width 0.3s ease;
+        }
+
+        .cut-handle:hover {
+            background-color: #1565c0;
+            width: 12px;
+        }
+
+        .cut-handle.left {
+            left: 0;
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .cut-handle.right {
+            right: 0;
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        .message {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.success {
+            background-color: rgba(76, 175, 80, 0.95);
+            color: white;
+        }
+
+        .message.error {
+            background-color: rgba(244, 67, 54, 0.95);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+            <div class="navbar-title">视频剪切工具</div>
+            <div style="display: flex; align-items: center;">
+                <button class="btn" onclick="importVideo()">导入视频</button>
+                <button class="btn" onclick="importFolder()">导入文件夹</button>
+                <button class="btn" style="background-color: #388e3c;" onclick="exportVideo()">导出视频</button>
+                <div id="exportProgress" style="
+                    display: none;
+                    margin-left: 10px;
+                    flex: 1;
+                    max-width: 300px;
+                ">
+                    <div style="
+                        color: #fff;
+                        font-size: 12px;
+                        margin-bottom: 4px;
+                    ">导出进度</div>
+                    <div style="
+                        width: 100%;
+                        height: 8px;
+                        background-color: #333;
+                        border-radius: 4px;
+                        overflow: hidden;
+                    ">
+                        <div id="progressFill" style="
+                            width: 0%;
+                            height: 100%;
+                            background-color: #4caf50;
+                            border-radius: 4px;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                    <div id="progressText" style="
+                        color: #aaa;
+                        font-size: 12px;
+                        margin-top: 4px;
+                        text-align: right;
+                    ">0%</div>
+                </div>
+            </div>
+        </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 左侧视频列表 -->
+        <div class="video-list-panel">
+            <div class="info-panel" id="dropZone">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                    <h3>视频列表</h3>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: -13px;margin-left: -500px;">
+                        <div id="selectionCount" style="color: #4caf50; font-size: 12px; font-weight: 600; display: none;">已选中 0 个视频</div>
+                    </div>
+                </div>
+                <div class="controls" style="margin-bottom: 1px; display: flex; gap: 3px; justify-content: flex-start; align-items: center;">
+                    <button class="btn" onclick="removeSelectedVideos()">移除</button>
+                    <button class="btn" style="background-color: #d32f2f;" onclick="deleteSelectedVideos()">删除</button>
+                </div>
+                <div id="videoList" class="video-list">
+                    <!-- 视频列表项将通过JavaScript动态添加 -->
+                </div>
+                </div>
+            <div class="resizer" id="resizer"></div>
+        </div>
+        
+        <!-- 右侧视频处理区 -->
+        <div class="right-panel">
+            <!-- 视频预览和信息区域 -->
+            <div class="video-info-container">
+                <!-- 视频预览容器 -->
+                <div class="video-container">
+                    <video id="video" controls></video>
+                </div>
+
+                <!-- 视频信息区域 -->
+                <div class="video-info-panel">
+                    <div class="info-panel">
+                        <div id="videoInfo">
+                            <div class="info-row"><span class="info-label">文件名称:</span><span class="info-value">--</span></div>
+                            <div class="info-row"><span class="info-label">拍摄时间:</span><span class="info-value">--</span></div>
+                            <div class="info-row"><span class="info-label">时长:</span><span class="info-value">--</span></div>
+                            <div class="info-row"><span class="info-label">码率:</span><span class="info-value">--</span></div>
+                            <div class="info-row"><span class="info-label">格式:</span><span class="info-value">--</span></div>
+                            <div class="info-row"><span class="info-label">分辨率:</span><span class="info-value">--</span></div>
+                            <div class="info-row"><span class="info-label">帧率:</span><span class="info-value">--</span></div>
+                            <div class="info-row"><span class="info-label">文件大小:</span><span class="info-value">--</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 视频控制栏 -->
+            <div class="controls">
+                <button class="btn" onclick="togglePlay()">播放</button>
+                <button class="btn" onclick="seek(-1)">后退1秒</button>
+                <button class="btn" onclick="seek(1)">前进1秒</button>
+                <button class="btn" onclick="toggleFullscreen()">全屏</button>
+                
+                <!-- 时间显示 -->
+                <div id="timeDisplay" style="
+                    color: #fff;
+                    font-size: 14px;
+                    font-weight: 500;
+                    margin-left: 20px;
+                    padding: 8px 16px;
+                    background-color: #252525;
+                    border-radius: 6px;
+                    min-width: 120px;
+                    text-align: center;
+                ">00:00 / 00:00</div>
+            </div>
+
+            <!-- 剪切时间设置 -->
+            <div class="controls" style="margin-bottom: 1px;">
+                <label style="color: #fff; margin-right: 8px;">开始时间:</label>
+                <input type="text" id="startTime" value="00:00:00.000" style="
+                    background-color: #1e1e1e;
+                    color: #fff;
+                    border: 1px solid #444;
+                    border-radius: 6px;
+                    padding: 8px 12px;
+                    margin-right: 12px;
+                    font-size: 14px;
+                    width: 150px;
+                ">
+                <button class="btn" onclick="setStartTime()">当前位置</button>
+                
+                <label style="color: #fff; margin-left: 20px; margin-right: 8px;">结束时间:</label>
+                <input type="text" id="endTime" value="00:00:00.000" style="
+                    background-color: #1e1e1e;
+                    color: #fff;
+                    border: 1px solid #444;
+                    border-radius: 6px;
+                    padding: 8px 12px;
+                    margin-right: 12px;
+                    font-size: 14px;
+                    width: 150px;
+                ">
+                <button class="btn" onclick="setEndTime()">当前位置</button>
+            </div>
+
+            <!-- 合并的进度条和时间轴 -->
+            <div class="info-panel">  <!-- 已经删除<h3>时间轴</h3> -->
+                <div class="timeline-track" id="timeline" onclick="handleProgressClick(event)">
+                    <!-- 进度条 -->
+                    <div id="progressBar" class="progress-bar"></div>
+                    
+                    <!-- 切割区域 -->
+                    <div class="cut-region" id="cutRegion">
+                        <div class="cut-handle left" id="cutStartHandle"></div>
+                        <div class="cut-handle right" id="cutEndHandle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let videoPath = null;
+        let videoUrl = null;
+        let metadata = null;
+        let isPlaying = false;
+        let cutStartTime = 0;
+        let cutEndTime = 0;
+        let duration = 0;
+        let videoList = [];
+        let currentVideoIndex = -1;
+        let selectedVideos = []; // 存储选中的视频索引
+        let exportStatusList = []; // 存储每个视频的导出状态
+        
+        // 快捷键配置
+        let shortcuts = {
+            playPause: ' ',
+            rewind: 'q',
+            forward: 'e',
+            fullscreen: 'f',
+            setStartTime: '1',
+            setEndTime: '2'
+        };
+
+        // Electron API通过preload.js暴露
+
+        // 初始化事件监听
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('video');
+            video.addEventListener('timeupdate', updateProgress);
+            video.addEventListener('loadedmetadata', updateVideoInfo);
+            
+            // 初始化调整大小功能
+            initResizer();
+            
+            // 初始化时间轴拖动功能
+            initTimelineDrag();
+            
+            // 加载快捷键配置
+            loadShortcuts();
+            
+            // 初始化键盘快捷键
+            initKeyboardShortcuts();
+            
+            // 初始化拖拽功能
+            initDragAndDrop();
+            
+            // 监听快捷键更新事件
+            if (window.electronAPI) {
+                window.electronAPI.onShortcutsUpdated((event, newShortcuts) => {
+                    shortcuts = { ...shortcuts, ...newShortcuts };
+                    showMessage('快捷键配置已更新', 'success');
+                });
+                
+                // 监听导出进度更新事件
+                window.electronAPI.onCutProgress((event, progress) => {
+                    updateExportProgress(progress);
+                });
+            }
+        });
+        
+        // 初始化拖拽功能
+        function initDragAndDrop() {
+            const mainContent = document.querySelector('.main-content');
+            
+            // 阻止默认拖拽行为
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                mainContent.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // 高亮拖拽区域
+            ['dragenter', 'dragover'].forEach(eventName => {
+                mainContent.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                mainContent.addEventListener(eventName, unhighlight, false);
+            });
+            
+            // 处理放置事件
+            mainContent.addEventListener('drop', handleDrop, false);
+        }
+        
+        // 阻止默认行为
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // 高亮拖拽区域
+        function highlight() {
+            const mainContent = document.querySelector('.main-content');
+            mainContent.style.backgroundColor = 'rgba(76, 175, 80, 0.05)';
+            mainContent.style.border = '2px dashed #4caf50';
+        }
+        
+        // 取消高亮
+        function unhighlight() {
+            const mainContent = document.querySelector('.main-content');
+            mainContent.style.backgroundColor = '';
+            mainContent.style.border = '';
+        }
+        
+        // 处理放置事件
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            // 处理拖放的文件
+            handleFiles(files);
+        }
+        
+        // 处理文件
+        async function handleFiles(files) {
+            const videoFiles = Array.from(files).filter(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                return ['mp4', 'mov', 'avi', 'wmv', 'mkv', 'flv', 'webm'].includes(ext);
+            });
+            
+            if (videoFiles.length > 0) {
+                for (const file of videoFiles) {
+                    await addVideoToList(file.path);
+                }
+                showMessage(`成功导入 ${videoFiles.length} 个视频`, 'success');
+            } else {
+                showMessage('请拖放视频文件', 'error');
+            }
+        }
+
+        // 初始化调整大小功能
+        function initResizer() {
+            const resizer = document.getElementById('resizer');
+            const videoListPanel = document.querySelector('.video-list-panel');
+            
+            let isResizing = false;
+            let startX = 0;
+            let startWidth = 0;
+            
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = videoListPanel.offsetWidth;
+                resizer.classList.add('active');
+                document.body.style.cursor = 'col-resize';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                const width = startWidth + (e.clientX - startX);
+                // 设置最小宽度为200px，最大宽度为窗口的70%
+                const minWidth = 200;
+                const maxWidth = window.innerWidth * 0.7;
+                
+                if (width >= minWidth && width <= maxWidth) {
+                    videoListPanel.style.width = `${width}px`;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isResizing = false;
+                resizer.classList.remove('active');
+                document.body.style.cursor = '';
+            });
+        }
+
+        // 全局变量，用于跟踪是否正在拖动
+        let isDragging = false;
+
+        // 初始化时间轴拖动功能
+        function initTimelineDrag() {
+            const cutRegion = document.getElementById('cutRegion');
+            const cutStartHandle = document.getElementById('cutStartHandle');
+            const cutEndHandle = document.getElementById('cutEndHandle');
+            const timeline = document.getElementById('timeline');
+            
+            let isDraggingStart = false;
+            let isDraggingEnd = false;
+            let startX = 0;
+            let startLeft = 0;
+            let startWidth = 0;
+            
+            // 拖动整个切割区域
+            cutRegion.addEventListener('mousedown', (e) => {
+                // 防止点击到手柄时触发区域拖动
+                if (e.target === cutStartHandle || e.target === cutEndHandle) return;
+                
+                isDragging = true;
+                startX = e.clientX;
+                startLeft = parseFloat(cutRegion.style.left) || 0;
+                document.body.style.cursor = 'move';
+            });
+            
+            // 拖动开始手柄
+            cutStartHandle.addEventListener('mousedown', (e) => {
+                isDraggingStart = true;
+                startX = e.clientX;
+                startLeft = parseFloat(cutRegion.style.left) || 0;
+                startWidth = parseFloat(cutRegion.style.width) || 100;
+                document.body.style.cursor = 'ew-resize';
+            });
+            
+            // 拖动结束手柄
+            cutEndHandle.addEventListener('mousedown', (e) => {
+                isDraggingEnd = true;
+                startX = e.clientX;
+                startWidth = parseFloat(cutRegion.style.width) || 100;
+                document.body.style.cursor = 'ew-resize';
+            });
+            
+            // 鼠标移动事件
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging && !isDraggingStart && !isDraggingEnd) return;
+                
+                const timelineRect = timeline.getBoundingClientRect();
+                const deltaX = e.clientX - startX;
+                const deltaPercent = (deltaX / timelineRect.width) * 100;
+                
+                if (isDragging) {
+                    // 计算新的左边距，确保不超出时间轴范围
+                    let newLeft = startLeft + deltaPercent;
+                    let newWidth = parseFloat(cutRegion.style.width) || 100;
+                    
+                    // 确保切割区域不会超出时间轴范围
+                    if (newLeft < 0) {
+                        newLeft = 0;
+                    } else if (newLeft + newWidth > 100) {
+                        newLeft = 100 - newWidth;
+                    }
+                    
+                    cutRegion.style.left = `${newLeft}%`;
+                    updateCutTimesFromTimeline();
+                } else if (isDraggingStart) {
+                    // 计算新的左边距和宽度，确保不超出时间轴范围
+                    let newLeft = startLeft + deltaPercent;
+                    let newWidth = startWidth - deltaPercent;
+                    
+                    // 确保切割区域不会超出时间轴范围且宽度为正
+                    if (newLeft < 0) {
+                        newLeft = 0;
+                        newWidth = startWidth + startLeft;
+                    } else if (newWidth < 1) {
+                        newWidth = 1;
+                        newLeft = startLeft + startWidth - 1;
+                    }
+                    
+                    cutRegion.style.left = `${newLeft}%`;
+                    cutRegion.style.width = `${newWidth}%`;
+                    updateCutTimesFromTimeline();
+                } else if (isDraggingEnd) {
+                    // 计算新的宽度，确保不超出时间轴范围
+                    let newWidth = startWidth + deltaPercent;
+                    let currentLeft = parseFloat(cutRegion.style.left) || 0;
+                    
+                    // 确保切割区域不会超出时间轴范围且宽度为正
+                    if (newWidth < 1) {
+                        newWidth = 1;
+                    } else if (currentLeft + newWidth > 100) {
+                        newWidth = 100 - currentLeft;
+                    }
+                    
+                    cutRegion.style.width = `${newWidth}%`;
+                    updateCutTimesFromTimeline();
+                }
+            });
+            
+            // 鼠标释放事件
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                isDraggingStart = false;
+                isDraggingEnd = false;
+                document.body.style.cursor = '';
+            });
+        }
+
+        // 从时间轴更新切割时间
+        function updateCutTimesFromTimeline() {
+            const cutRegion = document.getElementById('cutRegion');
+            const leftPercent = parseFloat(cutRegion.style.left) || 0;
+            const widthPercent = parseFloat(cutRegion.style.width) || 100;
+            
+            cutStartTime = (leftPercent / 100) * duration;
+            cutEndTime = ((leftPercent + widthPercent) / 100) * duration;
+            
+            // 更新输入框
+            document.getElementById('startTime').value = formatTime(cutStartTime);
+            document.getElementById('endTime').value = formatTime(cutEndTime);
+            
+            // 更新视频对象中存储的切割时间
+            if (currentVideoIndex >= 0 && currentVideoIndex < videoList.length) {
+                videoList[currentVideoIndex].cutStartTime = cutStartTime;
+                videoList[currentVideoIndex].cutEndTime = cutEndTime;
+            }
+        }
+
+        // 导入视频
+        async function importVideo() {
+            try {
+                const filePaths = await window.electronAPI.selectVideoFile();
+                if (filePaths && filePaths.length > 0) {
+                    for (const filePath of filePaths) {
+                        await addVideoToList(filePath);
+                    }
+                    showMessage(`成功导入 ${filePaths.length} 个视频`, 'success');
+                }
+            } catch (error) {
+                showMessage('导入视频失败: ' + error.message, 'error');
+            }
+        }
+
+        // 导入文件夹
+        async function importFolder() {
+            try {
+                const filePaths = await window.electronAPI.selectFolder();
+                if (filePaths && filePaths.length > 0) {
+                    for (const filePath of filePaths) {
+                        await addVideoToList(filePath);
+                    }
+                    showMessage(`成功导入 ${filePaths.length} 个视频`, 'success');
+                }
+            } catch (error) {
+                showMessage('导入文件夹失败: ' + error.message, 'error');
+            }
+        }
+
+        // 添加视频到列表
+        async function addVideoToList(filePath) {
+            try {
+                // 检查是否重复
+                const isDuplicate = videoList.some(item => item.path === filePath);
+                if (isDuplicate) {
+                    console.log('视频已存在，跳过:', filePath);
+                    return;
+                }
+                
+                // 获取视频元数据
+                const videoMetadata = await window.electronAPI.getVideoMetadata(filePath);
+                const videoItem = {
+                    path: filePath,
+                    metadata: videoMetadata,
+                    preview: null,
+                    cutStartTime: 0,
+                    cutEndTime: videoMetadata.format.duration
+                };
+                videoList.push(videoItem);
+                updateVideoList();
+                
+                // 生成预览图
+                generateVideoPreview(videoItem, videoList.length - 1);
+                
+                // 如果是第一个视频，自动加载
+                if (videoList.length === 1) {
+                    loadVideoFromList(0);
+                }
+            } catch (error) {
+                console.error('添加视频到列表失败:', error);
+            }
+        }
+
+        // 生成视频预览图
+        function generateVideoPreview(videoItem, index) {
+            const video = document.createElement('video');
+            video.src = `file://${videoItem.path}`;
+            video.crossOrigin = 'anonymous';
+            
+            video.onloadeddata = () => {
+                // 播放一小段时间以确保有帧数据
+                video.currentTime = Math.min(1, video.duration / 2);
+            };
+            
+            video.onseeked = () => {
+                // 创建canvas并绘制帧
+                const canvas = document.createElement('canvas');
+                canvas.width = 160;
+                canvas.height = 90;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // 将canvas转换为data URL
+                videoItem.preview = canvas.toDataURL('image/jpeg', 0.7);
+                
+                // 更新UI
+                updateVideoList();
+                
+                // 清理
+                video.remove();
+                canvas.remove();
+            };
+            
+            video.onerror = () => {
+                console.error('生成预览图失败:', videoItem.path);
+                video.remove();
+            };
+        }
+
+        // 从列表加载视频
+        function loadVideoFromList(index) {
+            if (index >= 0 && index < videoList.length) {
+                const videoItem = videoList[index];
+                currentVideoIndex = index;
+                
+                // 移除旧的blob URL
+                if (videoUrl) {
+                    URL.revokeObjectURL(videoUrl);
+                }
+                
+                // 加载新视频
+                videoPath = videoItem.path;
+                metadata = videoItem.metadata;
+                
+                // 使用视频对象中存储的切割时间范围
+                cutStartTime = videoItem.cutStartTime;
+                cutEndTime = videoItem.cutEndTime;
+                
+                // 更新UI
+                updateVideoList();
+                loadVideo(videoPath);
+            }
+        }
+
+        // 加载视频
+        async function loadVideo(filePath) {
+            try {
+                const video = document.getElementById('video');
+                const response = await fetch(`file://${filePath}`);
+                const blob = await response.blob();
+                videoUrl = URL.createObjectURL(blob);
+                video.src = videoUrl;
+
+                duration = metadata.format.duration;
+                
+                // 使用视频对象中存储的切割时间范围
+                if (currentVideoIndex >= 0 && currentVideoIndex < videoList.length) {
+                    cutStartTime = videoList[currentVideoIndex].cutStartTime;
+                    cutEndTime = videoList[currentVideoIndex].cutEndTime;
+                } else {
+                    cutStartTime = 0;
+                    cutEndTime = duration;
+                }
+                
+                updateVideoInfo();
+                updateTimeline();
+            } catch (error) {
+                showMessage('加载视频失败: ' + error.message, 'error');
+            }
+        }
+
+        // 更新视频列表
+        function updateVideoList() {
+            const videoListElement = document.getElementById('videoList');
+            videoListElement.innerHTML = '';
+            
+            // 更新选中数量显示
+            const selectionCountElement = document.getElementById('selectionCount');
+            if (selectionCountElement) {
+                if (selectedVideos.length >= 2) {
+                    selectionCountElement.textContent = `已选中 ${selectedVideos.length} 个视频`;
+                    selectionCountElement.style.display = 'block';
+                } else {
+                    selectionCountElement.style.display = 'none';
+                }
+            }
+            
+            videoList.forEach((videoItem, index) => {
+                const itemElement = document.createElement('div');
+                // 确保isSelected变量被正确计算
+                const isSelected = selectedVideos.includes(index);
+                itemElement.className = `video-item ${index === currentVideoIndex ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
+                itemElement.onclick = (e) => {
+                    handleVideoItemClick(e, index);
+                };
+                
+                const fileName = videoItem.path.split('\\').pop();
+                const duration = formatTime(videoItem.metadata.format.duration);
+                
+                // 获取当前视频的导出状态
+                const exportStatus = exportStatusList[index] || {
+                    status: 'idle', // idle, exporting, completed
+                    progress: 0,
+                    fileName: ''
+                };
+                
+                // 处理长文件名截断
+                function truncateFilename(filename, maxLength = 15) {
+                    if (filename.length <= maxLength) {
+                        return `<div class="video-item-name">${filename}</div>`;
+                    }
+                    const startLength = Math.floor(maxLength * 0.6);
+                    const endLength = Math.floor(maxLength * 0.4);
+                    const start = filename.substring(0, startLength);
+                    const end = filename.substring(filename.length - endLength);
+                    return `
+                        <div class="truncated-filename">
+                            <span class="filename-start">${start}</span>
+                            <span class="filename-ellipsis">...</span>
+                            <span class="filename-end">${end}</span>
+                        </div>
+                    `;
+                }
+
+                // 构建导出状态HTML
+                let exportStatusHtml = '';
+                if (exportStatus.status === 'exporting' || exportStatus.status === 'completed') {
+                    // 为不同状态设置不同的颜色
+                    const progressColor = exportStatus.status === 'exporting' ? '#1976d2' : '#4caf50';
+                    // 对于所有导出状态，显示原文件名，保持一致的格式
+                    exportStatusHtml = `
+                        <div class="video-export-progress" id="export-progress-${index}" style="
+                            display: block;
+                            padding: 6px;
+                            background-color: #252525;
+                            border-radius: 4px;
+                            width: 100%;
+                        ">
+                            <div style="
+                                color: #fff;
+                                font-size: 12px;
+                                font-weight: 600;
+                                margin-bottom: 4px;
+                            ">
+                                ${exportStatus.status === 'exporting' ? `导出中:` : `导出完成:`}
+                            </div>
+                            <div style="
+                                color: #fff;
+                                font-size: 12px;
+                                margin-bottom: 4px;
+                            ">
+                                ${truncateFilename(fileName, 15)}
+                            </div>
+                            <div style="
+                                width: 100%;
+                                height: 4px;
+                                background-color: #333;
+                                border-radius: 2px;
+                                overflow: hidden;
+                            ">
+                                <div class="progress-fill" style="
+                                    width: ${exportStatus.status === 'completed' ? '100%' : exportStatus.progress}%;
+                                    height: 100%;
+                                    background-color: ${progressColor};
+                                    border-radius: 2px;
+                                    transition: width 0.3s ease;
+                                "></div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    exportStatusHtml = `
+                        <div class="video-export-progress" id="export-progress-${index}" style="
+                            display: none;
+                            margin-top: 6px;
+                            padding: 4px;
+                            background-color: #252525;
+                            border-radius: 4px;
+                            width: 100%;
+                        ">
+                            <div style="
+                                color: #fff;
+                                font-size: 12px;
+                                font-weight: 600;
+                                margin-bottom: 4px;
+                            ">
+                                导出中:
+                            </div>
+                            <div style="
+                                color: #fff;
+                                font-size: 12px;
+                                margin-bottom: 4px;
+                            ">
+                                ${truncateFilename(fileName, 15)}
+                            </div>
+                            <div style="
+                                width: 100%;
+                                height: 4px;
+                                background-color: #333;
+                                border-radius: 2px;
+                                overflow: hidden;
+                            ">
+                                <div class="progress-fill" style="
+                                    width: 0%;
+                                    height: 100%;
+                                    background-color: #1976d2;
+                                    border-radius: 2px;
+                                    transition: width 0.3s ease;
+                                "></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 直接在模板中检查selectedVideos.includes(index)，确保选择标记的显示逻辑正确
+                itemElement.innerHTML = `
+                    <div style="
+                        display: flex;
+                        align-items: flex-start;
+                        width: 100%;
+                        gap: 10px;
+                    ">
+                        <div class="video-preview" id="preview-${index}" style="
+                            flex-shrink: 0;
+                        ">
+                            ${videoItem.preview ? `<img src="${videoItem.preview}" alt="预览图">` : '<div style="color: #666; font-size: 12px;">生成预览中...</div>'}
+                        </div>
+                        <div style="
+                            flex: 1;
+                            min-width: 0;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 8px;
+                        ">
+                            ${exportStatus.status === 'exporting' || exportStatus.status === 'completed' ? '' : `
+                                <div>
+                                    ${truncateFilename(fileName)}
+                                    <div class="video-item-meta">时长: ${duration}</div>
+                                </div>
+                            `}
+                            ${exportStatusHtml}
+                        </div>
+                    </div>
+                `;
+                
+                videoListElement.appendChild(itemElement);
+            });
+        }
+
+        // 处理视频项点击
+        function handleVideoItemClick(event, index) {
+            if (event.ctrlKey || event.metaKey) {
+                // Ctrl+点击：切换选择状态
+                const selectedIndex = selectedVideos.indexOf(index);
+                if (selectedIndex > -1) {
+                    selectedVideos.splice(selectedIndex, 1);
+                } else {
+                    selectedVideos.push(index);
+                }
+                updateVideoList();
+            } else {
+                // 普通点击：加载视频并将其添加到选择列表
+                selectedVideos = [index];
+                loadVideoFromList(index);
+                updateVideoList();
+            }
+        }
+
+        // 显示右键菜单
+        function showContextMenu(event, index) {
+            // 阻止默认右键菜单
+            event.preventDefault();
+            
+            // 移除已存在的菜单
+            const existingMenu = document.getElementById('contextMenu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+            
+            // 创建菜单
+            const menu = document.createElement('div');
+            menu.id = 'contextMenu';
+            menu.style.cssText = `
+                position: fixed;
+                left: ${event.clientX}px;
+                top: ${event.clientY}px;
+                background-color: #2d2d2d;
+                border: 1px solid #333;
+                border-radius: 4px;
+                padding: 5px 0;
+                z-index: 9999;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                min-width: 120px;
+                color: white;
+                font-family: Arial, sans-serif;
+            `;
+            
+            // 添加菜单项
+            const renameItem = document.createElement('div');
+            renameItem.textContent = '重命名';
+            renameItem.style.cssText = `
+                padding: 8px 16px;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+            
+            // 添加鼠标悬停效果
+            renameItem.onmouseover = function() {
+                this.style.backgroundColor = '#3d3d3d';
+            };
+            renameItem.onmouseout = function() {
+                this.style.backgroundColor = 'transparent';
+            };
+            
+            // 添加点击事件 - 使用箭头函数确保index值正确
+            renameItem.onclick = () => {
+                startRename(index);
+                menu.remove();
+            };
+            
+            menu.appendChild(renameItem);
+            
+            // 添加到页面
+            document.body.appendChild(menu);
+            
+            // 点击其他地方关闭菜单
+            const closeMenu = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            
+            // 添加点击事件监听器
+            document.addEventListener('click', closeMenu);
+        }
+
+        // 开始重命名
+        function startRename(index) {
+            const videoItem = videoList[index];
+            const fileName = videoItem.path.split('\\').pop();
+            const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+            const ext = fileName.substring(fileName.lastIndexOf('.'));
+            
+            const newName = prompt('请输入新文件名（不包含扩展名）:', nameWithoutExt);
+            if (newName && newName.trim() !== '') {
+                renameVideoFile(index, newName.trim() + ext);
+            }
+        }
+
+        // 重命名视频文件
+        async function renameVideoFile(index, newFileName) {
+            try {
+                const videoItem = videoList[index];
+                const oldPath = videoItem.path;
+                const directory = oldPath.substring(0, oldPath.lastIndexOf('\\'));
+                const newPath = directory + '\\' + newFileName;
+                
+                // 调用Electron API重命名文件
+                await window.electronAPI.renameFile(oldPath, newPath);
+                
+                // 更新本地视频列表
+                videoItem.path = newPath;
+                videoItem.metadata.format.filename = newFileName;
+                
+                // 如果当前播放的是该视频，更新播放路径
+                if (index === currentVideoIndex) {
+                    videoPath = newPath;
+                    // 重新加载视频以更新URL
+                    loadVideo(newPath);
+                }
+                
+                // 更新视频列表UI
+                updateVideoList();
+                
+                showMessage('视频重命名成功', 'success');
+            } catch (error) {
+                showMessage('视频重命名失败: ' + error.message, 'error');
+            }
+        }
+
+        // 清空视频列表
+        function clearVideoList() {
+            // 移除所有blob URL
+            if (videoUrl) {
+                URL.revokeObjectURL(videoUrl);
+            }
+            
+            // 重置变量
+            videoList = [];
+            currentVideoIndex = -1;
+            videoPath = null;
+            videoUrl = null;
+            metadata = null;
+            duration = 0;
+            cutStartTime = 0;
+            cutEndTime = 0;
+            selectedVideos = [];
+            exportStatusList = []; // 重置导出状态列表
+            
+            // 更新UI
+            updateVideoList();
+            updateVideoInfo();
+            
+            // 清空视频源
+            const video = document.getElementById('video');
+            video.src = '';
+        }
+
+        // 更新视频信息
+        function updateVideoInfo() {
+            const video = document.getElementById('video');
+            duration = video.duration || duration;
+            
+            const infoContainer = document.getElementById('videoInfo');
+            infoContainer.innerHTML = `
+                <div class="info-row"><span class="info-label">文件名称:</span><span class="info-value">${metadata ? metadata.format.filename : '--'}</span></div>
+                <div class="info-row"><span class="info-label">拍摄时间:</span><span class="info-value">${metadata && metadata.format.shoot_time ? new Date(metadata.format.shoot_time).toLocaleString() : '--'}</span></div>
+                <div class="info-row"><span class="info-label">时长:</span><span class="info-value">${formatTime(duration)}</span></div>
+                <div class="info-row"><span class="info-label">码率:</span><span class="info-value">${metadata ? formatBitrate(metadata.format.bit_rate) : '--'}</span></div>
+                <div class="info-row"><span class="info-label">格式:</span><span class="info-value">${metadata ? metadata.format.format_name : '--'}</span></div>
+                <div class="info-row"><span class="info-label">分辨率:</span><span class="info-value">${metadata && metadata.streams[0] ? `${metadata.streams[0].width}×${metadata.streams[0].height}` : '--'}</span></div>
+                <div class="info-row"><span class="info-label">帧率:</span><span class="info-value">${metadata && metadata.streams[0] ? `${metadata.streams[0].r_frame_rate} fps` : '--'}</span></div>
+                <div class="info-row"><span class="info-label">文件大小:</span><span class="info-value">${metadata ? formatFileSize(metadata.format.size) : '--'}</span></div>
+            `;
+
+            // 更新剪切时间输入框，使用存储的切割时间
+            document.getElementById('startTime').value = formatTime(cutStartTime);
+            document.getElementById('endTime').value = formatTime(cutEndTime);
+        }
+
+        // 播放/暂停控制
+        function togglePlay() {
+            const video = document.getElementById('video');
+            if (video.paused) {
+                video.play();
+                document.querySelector('button[onclick="togglePlay()"]').textContent = '暂停';
+            } else {
+                video.pause();
+                document.querySelector('button[onclick="togglePlay()"]').textContent = '播放';
+            }
+        }
+
+        // 前进/后退控制
+        function seek(seconds) {
+            const video = document.getElementById('video');
+            video.currentTime = Math.max(0, Math.min(duration, video.currentTime + seconds));
+        }
+
+        // 全屏切换
+        function toggleFullscreen() {
+            const video = document.getElementById('video');
+            if (!document.fullscreenElement) {
+                video.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // 进度条点击事件
+        function handleProgressClick(event) {
+            // 如果正在拖动，不处理点击事件
+            if (isDragging) return;
+            
+            const video = document.getElementById('video');
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (event.clientX - rect.left) / rect.width;
+            video.currentTime = percent * duration;
+        }
+
+        // 更新进度条
+        function updateProgress() {
+            const video = document.getElementById('video');
+            const progressBar = document.getElementById('progressBar');
+            const timeDisplay = document.getElementById('timeDisplay');
+            
+            const percent = (video.currentTime / duration) * 100;
+            progressBar.style.width = `${percent}%`;
+            
+            timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(duration)}`;
+        }
+
+        // 设置开始时间
+        function setStartTime() {
+            const video = document.getElementById('video');
+            cutStartTime = video.currentTime;
+            document.getElementById('startTime').value = formatTime(cutStartTime);
+            updateTimeline();
+            
+            // 更新视频对象中存储的切割时间
+            if (currentVideoIndex >= 0 && currentVideoIndex < videoList.length) {
+                videoList[currentVideoIndex].cutStartTime = cutStartTime;
+            }
+        }
+
+        // 设置结束时间
+        function setEndTime() {
+            const video = document.getElementById('video');
+            cutEndTime = video.currentTime;
+            document.getElementById('endTime').value = formatTime(cutEndTime);
+            updateTimeline();
+            
+            // 更新视频对象中存储的切割时间
+            if (currentVideoIndex >= 0 && currentVideoIndex < videoList.length) {
+                videoList[currentVideoIndex].cutEndTime = cutEndTime;
+            }
+        }
+
+        // 更新时间轴
+        function updateTimeline() {
+            const cutRegion = document.getElementById('cutRegion');
+            const startPercent = (cutStartTime / duration) * 100;
+            const endPercent = (cutEndTime / duration) * 100;
+            const widthPercent = endPercent - startPercent;
+            
+            cutRegion.style.left = `${startPercent}%`;
+            cutRegion.style.width = `${widthPercent}%`;
+        }
+
+        // 导出视频
+        async function exportVideo() {
+            if (selectedVideos.length > 0) {
+                // 有视频被选中，执行批量导出
+                await batchExportVideos();
+            } else {
+                // 没有视频被选中，使用当前视频
+                await exportSingleVideo();
+            }
+        }
+
+        // 导出单个视频
+        async function exportSingleVideo() {
+            if (!videoPath || cutStartTime >= cutEndTime) {
+                showMessage('请先选择有效的剪切区域', 'warning');
+                return;
+            }
+
+            try {
+                const defaultFileName = `cut_${videoPath.split('\\').pop()}`;
+                const outputPath = await window.electronAPI.selectExportPath(defaultFileName);
+                
+                if (outputPath) {
+                    showMessage('开始导出视频...', 'success');
+                    await window.electronAPI.cutVideo({
+                        inputPath: videoPath,
+                        outputPath: outputPath,
+                        startTime: cutStartTime,
+                        endTime: cutEndTime
+                    });
+                    showMessage('视频导出成功', 'success');
+                }
+            } catch (error) {
+                showMessage('视频导出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 批量导出视频
+        async function batchExportVideos() {
+            if (selectedVideos.length === 0) {
+                showMessage('请至少选择一个视频进行导出', 'error');
+                return;
+            }
+            
+            try {
+                // 创建导出目录
+                const outputDir = await window.electronAPI.selectExportDirectory();
+                
+                if (!outputDir) {
+                    return;
+                }
+                
+                let completed = 0;
+                const total = selectedVideos.length;
+                
+                // 逐个导出视频
+                for (const index of selectedVideos) {
+                    const videoItem = videoList[index];
+                    const videoPath = videoItem.path;
+                    const originalFileName = videoPath.split('\\').pop();
+                    let fileName = `cut_${originalFileName}`;
+                    let outputPath = `${outputDir}\\${fileName}`;
+                    
+                    console.log('Processing video:', videoPath);
+                    console.log('Output path:', outputPath);
+                    console.log('Cut start time:', videoItem.cutStartTime);
+                    console.log('Cut end time:', videoItem.cutEndTime);
+                    
+                    // 处理同名文件，增加后缀
+                    let counter = 1;
+                    const fs = require('fs');
+                    while (fs.existsSync(outputPath)) {
+                        const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                        const ext = fileName.substring(fileName.lastIndexOf('.'));
+                        fileName = `${nameWithoutExt}_${counter}${ext}`;
+                        outputPath = `${outputDir}\\${fileName}`;
+                        counter++;
+                        console.log('File exists, trying new name:', outputPath);
+                    }
+                    
+                    // 更新导出状态为导出中
+                    exportStatusList[index] = {
+                        status: 'exporting',
+                        progress: 0,
+                        fileName: originalFileName
+                    };
+                    updateVideoList();
+                    
+                    // 显示当前视频的进度条
+                    const progressContainer = document.getElementById(`export-progress-${index}`);
+                    if (progressContainer) {
+                        progressContainer.style.display = 'block';
+                        
+                        // 更新导出状态文本，显示原视频名称
+                        const exportStatus = progressContainer.querySelector('.export-status');
+                        if (exportStatus) {
+                            exportStatus.textContent = `导出中: ${originalFileName}`;
+                        }
+                    }
+                    
+                    try {
+                        // 使用视频对象中存储的剪切时间
+                        await window.electronAPI.cutVideo({
+                            inputPath: videoPath,
+                            outputPath: outputPath,
+                            startTime: videoItem.cutStartTime,
+                            endTime: videoItem.cutEndTime,
+                            videoIndex: index
+                        });
+                        
+                        // 检查输出文件是否存在且大小大于0
+                        if (fs.existsSync(outputPath)) {
+                            const stats = fs.statSync(outputPath);
+                            if (stats.size === 0) {
+                                throw new Error(`导出文件为空: ${outputPath}`);
+                            }
+                            console.log('Export successful, file size:', stats.size);
+                        } else {
+                            throw new Error(`导出文件不存在: ${outputPath}`);
+                        }
+                        
+                        // 导出完成后更新状态
+                        exportStatusList[index] = {
+                            status: 'completed',
+                            progress: 100,
+                            fileName: fileName
+                        };
+                        updateVideoList();
+                        
+                        completed++;
+                    } catch (exportError) {
+                        console.error('Export failed for video:', exportError);
+                        showMessage(`导出视频失败: ${originalFileName} - ${exportError.message}`, 'error');
+                        // 重置失败视频的导出状态
+                        exportStatusList[index] = {
+                            status: 'idle',
+                            progress: 0,
+                            fileName: ''
+                        };
+                        updateVideoList();
+                    }
+                }
+                
+                if (completed > 0) {
+                    showMessage(`成功导出 ${completed} 个视频`, 'success');
+                }
+            } catch (error) {
+                console.error('Batch export failed:', error);
+                showMessage('批量导出失败: ' + error.message, 'error');
+                // 重置失败视频的导出状态
+                selectedVideos.forEach(index => {
+                    exportStatusList[index] = {
+                        status: 'idle',
+                        progress: 0,
+                        fileName: ''
+                    };
+                });
+                updateVideoList();
+            }
+        }
+
+        // 格式化时间
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '00:00:00.000';
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 1000);
+            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+        }
+
+        // 格式化码率
+        function formatBitrate(bitrate) {
+            return `${(bitrate / (1024 * 1024)).toFixed(2)} Mbps`;
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024 * 1024) {
+                return `${(bytes / 1024).toFixed(2)} KB`;
+            } else if (bytes < 1024 * 1024 * 1024) {
+                return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+            } else {
+                return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+            }
+        }
+
+        // 删除选中的视频
+        function deleteSelectedVideo() {
+            if (currentVideoIndex >= 0) {
+                const videoItem = videoList[currentVideoIndex];
+                const fileName = videoItem.metadata.format.filename;
+                
+                if (confirm(`确定要删除视频文件 "${fileName}" 吗？此操作无法撤销。`)) {
+                    deleteVideoFile(currentVideoIndex);
+                }
+            } else {
+                showMessage('请先选择一个视频文件', 'error');
+            }
+        }
+
+        // 移除选中的视频（从软件中移除，不删除原文件）
+        function removeSelectedVideos() {
+            if (selectedVideos.length === 0) {
+                showMessage('请至少选择一个视频', 'error');
+                return;
+            }
+            
+            // 按索引降序排序，确保从后往前删除，避免索引错乱
+            selectedVideos.sort((a, b) => b - a);
+            
+            const removedCount = selectedVideos.length;
+            
+            selectedVideos.forEach(index => {
+                // 如果删除的是当前选中的视频，更新索引
+                if (index === currentVideoIndex) {
+                    currentVideoIndex = -1;
+                    videoPath = null;
+                    videoUrl = null;
+                    metadata = null;
+                    duration = 0;
+                    cutStartTime = 0;
+                    cutEndTime = 0;
+                    
+                    // 清空视频源
+                    const video = document.getElementById('video');
+                    video.src = '';
+                    
+                    // 更新视频信息
+                    updateVideoInfo();
+                } else if (index < currentVideoIndex) {
+                    // 如果删除的视频在当前选中视频之前，调整索引
+                    currentVideoIndex--;
+                }
+                
+                // 从视频列表中移除
+                videoList.splice(index, 1);
+                // 从导出状态列表中移除
+                exportStatusList.splice(index, 1);
+            });
+            
+            // 清空选中视频数组
+            selectedVideos = [];
+            
+            // 更新视频列表UI
+            updateVideoList();
+            
+            showMessage(`成功移除 ${removedCount} 个视频`, 'success');
+        }
+
+        // 批量删除选中的视频
+        function deleteSelectedVideos() {
+            if (selectedVideos.length === 0) {
+                showMessage('请至少选择一个视频文件', 'error');
+                return;
+            }
+            
+            const videoCount = selectedVideos.length;
+            if (confirm(`确定要删除 ${videoCount} 个视频文件吗？此操作无法撤销。`)) {
+                deleteVideos(selectedVideos);
+            }
+        }
+
+        // 删除视频文件
+        async function deleteVideoFile(index) {
+            try {
+                const videoItem = videoList[index];
+                const filePath = videoItem.path;
+                
+                // 调用Electron API删除文件
+                await window.electronAPI.deleteFile(filePath);
+                
+                // 从视频列表中移除
+                videoList.splice(index, 1);
+                // 从导出状态列表中移除
+                exportStatusList.splice(index, 1);
+                
+                // 如果删除的是当前选中的视频，更新索引
+                if (index === currentVideoIndex) {
+                    currentVideoIndex = -1;
+                    videoPath = null;
+                    videoUrl = null;
+                    metadata = null;
+                    duration = 0;
+                    cutStartTime = 0;
+                    cutEndTime = 0;
+                    
+                    // 清空视频源
+                    const video = document.getElementById('video');
+                    video.src = '';
+                    
+                    // 更新视频信息
+                    updateVideoInfo();
+                } else if (index < currentVideoIndex) {
+                    // 如果删除的视频在当前选中视频之前，调整索引
+                    currentVideoIndex--;
+                }
+                
+                // 更新视频列表UI
+                updateVideoList();
+                
+                showMessage('视频删除成功', 'success');
+            } catch (error) {
+                console.error('删除视频失败:', error);
+                showMessage('删除视频失败: ' + error.message, 'error');
+            }
+        }
+
+        // 批量删除视频文件
+        async function deleteVideos(indices) {
+            try {
+                let deletedCount = 0;
+                
+                // 按索引降序排序，确保从后往前删除，避免索引错乱
+                indices.sort((a, b) => b - a);
+                
+                for (const index of indices) {
+                    const videoItem = videoList[index];
+                    const filePath = videoItem.path;
+                    
+                    // 调用Electron API删除文件
+                    await window.electronAPI.deleteFile(filePath);
+                    
+                    // 从视频列表中移除
+                    videoList.splice(index, 1);
+                    // 从导出状态列表中移除
+                    exportStatusList.splice(index, 1);
+                    
+                    // 如果删除的是当前选中的视频，更新索引
+                    if (index === currentVideoIndex) {
+                        currentVideoIndex = -1;
+                        videoPath = null;
+                        videoUrl = null;
+                        metadata = null;
+                        duration = 0;
+                        cutStartTime = 0;
+                        cutEndTime = 0;
+                        
+                        // 清空视频源
+                        const video = document.getElementById('video');
+                        video.src = '';
+                        
+                        // 更新视频信息
+                        updateVideoInfo();
+                    } else if (index < currentVideoIndex) {
+                        // 如果删除的视频在当前选中视频之前，调整索引
+                        currentVideoIndex--;
+                    }
+                    
+                    deletedCount++;
+                }
+                
+                // 清空选中视频数组
+                selectedVideos = [];
+                
+                // 更新视频列表UI
+                updateVideoList();
+                
+                showMessage(`成功删除 ${deletedCount} 个视频`, 'success');
+            } catch (error) {
+                console.error('删除视频失败:', error);
+                showMessage('删除视频失败: ' + error.message, 'error');
+            }
+        }
+
+        // 选中所有视频
+        function selectAllVideos() {
+            selectedVideos = [];
+            for (let i = 0; i < videoList.length; i++) {
+                selectedVideos.push(i);
+            }
+            updateVideoList();
+        }
+
+        // 加载快捷键配置
+        function loadShortcuts() {
+            // 尝试从localStorage加载
+            const savedShortcuts = localStorage.getItem('videoCutterShortcuts');
+            if (savedShortcuts) {
+                try {
+                    shortcuts = { ...shortcuts, ...JSON.parse(savedShortcuts) };
+                } catch (error) {
+                    console.error('加载快捷键配置失败:', error);
+                }
+            }
+        }
+
+        // 初始化键盘快捷键
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', (event) => {
+                // 避免在输入框中触发快捷键
+                if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+
+                const key = event.key.toLowerCase();
+                
+                // Ctrl+A 选中所有视频
+                if ((event.ctrlKey || event.metaKey) && key === 'a') {
+                    event.preventDefault();
+                    selectAllVideos();
+                    return;
+                }
+                
+                // Delete键删除选中的视频
+                if (key === 'delete' || key === 'backspace') {
+                    event.preventDefault();
+                    if (selectedVideos.length > 0) {
+                        deleteSelectedVideos();
+                    }
+                    return;
+                }
+                
+                // 播放/暂停
+                if (key === shortcuts.playPause) {
+                    event.preventDefault();
+                    togglePlay();
+                }
+                // 后退1秒
+                else if (key === shortcuts.rewind) {
+                    event.preventDefault();
+                    seek(-1);
+                }
+                // 前进1秒
+                else if (key === shortcuts.forward) {
+                    event.preventDefault();
+                    seek(1);
+                }
+                // 全屏
+                else if (key === shortcuts.fullscreen) {
+                    event.preventDefault();
+                    toggleFullscreen();
+                }
+                // 设置开始时间
+                else if (key === shortcuts.setStartTime) {
+                    event.preventDefault();
+                    setStartTime();
+                }
+                // 设置结束时间
+                else if (key === shortcuts.setEndTime) {
+                    event.preventDefault();
+                    setEndTime();
+                }
+            });
+        }
+
+        // 显示消息
+        function showMessage(text, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // 更新导出进度
+        function updateExportProgress(progress) {
+            const { videoIndex, percentage } = progress;
+            
+            // 更新视频列表中的进度信息
+            if (videoIndex !== undefined) {
+                if (exportStatusList[videoIndex]) {
+                    exportStatusList[videoIndex].progress = percentage;
+                    updateVideoList();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

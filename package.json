@@ -1,0 +1,40 @@
+{
+  "name": "video-cutter-pro",
+  "version": "1.0.0",
+  "description": "Professional Video Cutting Tool",
+  "main": "main.js",
+  "scripts": {
+    "start": "set NODE_ENV=production && set PYTHONIOENCODING=utf-8 && set LANG=en_US.UTF-8 && set LC_ALL=en_US.UTF-8 && electron .",
+    "package": "electron-builder --win --x64"
+  },
+  "keywords": [
+    "video",
+    "cutter",
+    "editor",
+    "electron"
+  ],
+  "author": "David",
+  "license": "MIT",
+  "dependencies": {
+    "fluent-ffmpeg": "^2.1.2"
+  },
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.videocutterpro.app",
+    "productName": "Video Cutter Pro",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.ico"
+    }
+  }
+}

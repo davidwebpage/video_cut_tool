@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自定义快捷键</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1976d2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            background-color: #1565c0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: #666;
+        }
+
+        .btn-secondary:hover {
+            background-color: #555;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background-color: #1a1a1a;
+        }
+
+        .info-panel {
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .info-panel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-panel h2 {
+            margin-bottom: 20px;
+            color: #1976d2;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .info-panel p {
+            color: #aaa;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .shortcuts-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .shortcuts-table th,
+        .shortcuts-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        .shortcuts-table th {
+            background-color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .shortcuts-table tr:hover {
+            background-color: #333;
+        }
+
+        .shortcuts-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .shortcut-input {
+            background-color: #1e1e1e;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            width: 120px;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .shortcut-input:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+        }
+
+        .message {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.success {
+            background-color: rgba(76, 175, 80, 0.95);
+            color: white;
+        }
+
+        .message.error {
+            background-color: rgba(244, 67, 54, 0.95);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <div class="navbar-title">自定义快捷键</div>
+        <div>
+            <button class="btn btn-secondary" onclick="resetToDefaults()">恢复默认</button>
+            <button class="btn" onclick="saveShortcuts()">保存设置</button>
+            <button class="btn btn-secondary" onclick="closeWindow()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <div class="info-panel">
+            <h2>快捷键设置</h2>
+            <p>点击输入框并按下您想要的快捷键组合来自定义操作。按下Esc键可以清除当前输入的快捷键。</p>
+        </div>
+
+        <table class="shortcuts-table">
+            <thead>
+                <tr>
+                    <th>操作</th>
+                    <th>当前快捷键</th>
+                    <th>默认快捷键</th>
+                </tr>
+            </thead>
+            <tbody id="shortcutsTableBody">
+                <!-- 快捷键列表将通过JavaScript动态添加 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 默认快捷键配置
+        const defaultShortcuts = {
+            playPause: ' ',
+            rewind: 'q',
+            forward: 'e',
+            fullscreen: 'f',
+            setStartTime: '1',
+            setEndTime: '2'
+        };
+
+        // 当前快捷键配置
+        let currentShortcuts = { ...defaultShortcuts };
+
+        // 操作名称映射
+        const actionNames = {
+            playPause: '播放/暂停',
+            rewind: '后退1秒',
+            forward: '前进1秒',
+            fullscreen: '全屏',
+            setStartTime: '设置开始时间',
+            setEndTime: '设置结束时间'
+        };
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () => {
+            loadShortcuts();
+            renderShortcutsTable();
+            initInputListeners();
+        });
+
+        // 加载快捷键配置
+        function loadShortcuts() {
+            // 尝试从localStorage加载
+            const savedShortcuts = localStorage.getItem('videoCutterShortcuts');
+            if (savedShortcuts) {
+                try {
+                    currentShortcuts = { ...defaultShortcuts, ...JSON.parse(savedShortcuts) };
+                } catch (error) {
+                    console.error('加载快捷键配置失败:', error);
+                    currentShortcuts = { ...defaultShortcuts };
+                }
+            }
+        }
+
+        // 渲染快捷键表格
+        function renderShortcutsTable() {
+            const tableBody = document.getElementById('shortcutsTableBody');
+            tableBody.innerHTML = '';
+
+            Object.entries(actionNames).forEach(([action, name]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${name}</td>
+                    <td>
+                        <input type="text" class="shortcut-input" id="shortcut-${action}" 
+                               data-action="${action}" value="${formatShortcut(currentShortcuts[action])}">
+                    </td>
+                    <td>${formatShortcut(defaultShortcuts[action])}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 初始化输入框监听器
+        function initInputListeners() {
+            const inputs = document.querySelectorAll('.shortcut-input');
+            inputs.forEach(input => {
+                input.addEventListener('keydown', handleKeyDown);
+                input.addEventListener('click', (e) => {
+                    e.target.select();
+                });
+            });
+        }
+
+        // 处理键盘输入
+        function handleKeyDown(e) {
+            e.preventDefault();
+            
+            // 按下Esc键清除快捷键
+            if (e.key === 'Escape') {
+                e.target.value = '';
+                return;
+            }
+
+            // 只允许单个按键作为快捷键
+            const key = e.key.toLowerCase();
+            
+            // 避免使用某些特殊键
+            const disallowedKeys = ['tab', 'enter', 'shift', 'ctrl', 'alt', 'meta', 'capslock', 'numlock', 'scrolllock'];
+            if (!disallowedKeys.includes(key)) {
+                e.target.value = key === ' ' ? 'Space' : key;
+                currentShortcuts[e.target.dataset.action] = key;
+            }
+        }
+
+        // 格式化快捷键显示
+        function formatShortcut(key) {
+            return key === ' ' ? 'Space' : key;
+        }
+
+        // 保存快捷键配置
+        function saveShortcuts() {
+            try {
+                localStorage.setItem('videoCutterShortcuts', JSON.stringify(currentShortcuts));
+                showMessage('快捷键配置已保存', 'success');
+                
+                // 通知主窗口更新快捷键
+                if (window.electronAPI) {
+                    window.electronAPI.updateShortcuts(currentShortcuts);
+                }
+            } catch (error) {
+                console.error('保存快捷键配置失败:', error);
+                showMessage('保存失败，请重试', 'error');
+            }
+        }
+
+        // 恢复默认快捷键
+        function resetToDefaults() {
+            currentShortcuts = { ...defaultShortcuts };
+            renderShortcutsTable();
+            initInputListeners();
+            showMessage('已恢复默认快捷键', 'success');
+        }
+
+        // 关闭窗口
+        function closeWindow() {
+            if (window.electronAPI) {
+                window.electronAPI.closeShortcutsWindow();
+            } else {
+                window.close();
+            }
+        }
+
+        // 显示消息
+        function showMessage(text, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
